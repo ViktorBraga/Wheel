@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Spin</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+            color: white;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #roulette-window {
+            position: relative;
+            width: 320px;
+            height: 420px;
+            background: #050510;
+            overflow: hidden;
+            border-radius: 12px;
+            border: 3px solid #00f7ff;
+            box-shadow: 0 0 25px rgba(0, 247, 255, 0.4), inset 0 0 15px rgba(0, 247, 255, 0.2);
+        }
+
+        #strip {
+            position: absolute;
+            /* ВАЖНО: top должен совпадать с initialOffset в JS */
+            top: -3000px; 
+            left: 0;
+            width: 100%;
+            will-change: transform;
+        }
+
+        .card {
+            height: 100px;
+            width: 290px;
+            margin: 12px auto; /* 100 + 12 = 112px высота блока */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 25px;
+            box-sizing: border-box;
+            background: rgba(30, 30, 40, 0.8);
+            color: #fff;
+            font-weight: 800;
+            font-size: 26px;
+            text-transform: uppercase;
+            border-left: 12px solid transparent;
+            transform: skewX(-12deg);
+            text-shadow: 0 0 8px rgba(255,255,255,0.3);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
+            pointer-events: none;
+        }
+
+        .common { border-left-color: #2ecc71; box-shadow: -8px 0 20px rgba(46, 204, 113, 0.4); }
+        .rare { border-left-color: #3498db; box-shadow: -8px 0 25px rgba(52, 152, 219, 0.5); }
+        .epic { border-left-color: #9b59b6; box-shadow: -8px 0 30px rgba(155, 89, 182, 0.6); }
+        .legendary {
+            border-left-color: #f1c40f;
+            background: linear-gradient(90deg, rgba(241, 196, 15, 0.2) 0%, rgba(30, 30, 40, 0.8) 100%);
+            box-shadow: -10px 0 40px rgba(241, 196, 15, 0.8);
+            color: #ffeaa7;
+            text-shadow: 0 0 15px #f1c40f;
+        }
+
+        #selector-line {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 110px;
+            transform: translateY(-50%);
+            border-top: 3px solid #ff0055;
+            border-bottom: 3px solid #ff0055;
+            background: rgba(255, 0, 85, 0.05);
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 0 25px #ff0055, inset 0 0 10px rgba(255, 0, 85, 0.5);
+        }
+
+        #selector-line::after {
+            content: "◄";
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 32px;
+            color: #ff0055;
+            text-shadow: 0 0 30px #ff0055;
+        }
+
+        #spinBtn {
+            margin-top: 35px;
+            padding: 20px 70px;
+            font-size: 24px;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-style: italic;
+            color: #fff;
+            background: linear-gradient(45deg, #ff0055, #ff5e00);
+            border: 2px solid #ff9db6;
+            border-radius: 8px;
+            transform: skewX(-12deg);
+            cursor: pointer;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.6);
+            transition: all 0.2s;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        #spinBtn:active { transform: skewX(-12deg) translateY(3px); box-shadow: 0 0 15px rgba(255, 0, 85, 0.8); }
+        #spinBtn:disabled { background: #444; border-color: #666; box-shadow: none; color: #888; }
+
+        .balance-box {
+            margin-bottom: 25px;
+            font-size: 20px;
+            color: #00f7ff;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 247, 255, 0.5);
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="balance-box" id="bal-text">CREDITS: 0</div>
+
+    <div id="roulette-window">
+        <div id="selector-line"></div>
+        <div id="strip"></div>
+    </div>
+
+    <button id="spinBtn">КРУТИТЬ</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let userPoints = parseInt(urlParams.get('points'));
+        if (isNaN(userPoints)) userPoints = 0;
+        document.getElementById('bal-text').innerText = "CREDITS: " + userPoints;
+
+        const possiblePrizes = [
+            { t: "50 CR", type: "common", v: 50 },
+            { t: "100 CR", type: "common", v: 100 },
+            { t: "0 CR", type: "common", v: 0 },
+            { t: "200 CR", type: "rare", v: 200 },
+            { t: "250 CR", type: "rare", v: 250 },
+            { t: "500 CR", type: "epic", v: 500 },
+            { t: "JACKPOT", type: "legendary", v: "jackpot" },
+            { t: "0 CR", type: "common", v: 0 }
+        ];
+
+        const strip = document.getElementById('strip');
+        const btn = document.getElementById('spinBtn');
+        const clickSound = new Audio('click_wheel.mp3'); 
+
+        const cardHeight = 112; 
+        const cardsCount = 200; 
+        const initialOffset = 3000; // Это смещение из CSS (top: -3000px)
+
+        function initStrip() {
+            let html = '';
+            for (let i = 0; i < cardsCount; i++) {
+                let randomPrize = possiblePrizes[Math.floor(Math.random() * possiblePrizes.length)];
+                html += '<div class="card ' + randomPrize.type + '">' +
+                        '<span>' + randomPrize.t + '</span>' +
+                        '<span>⭐️</span>' +
+                        '</div>';
+            }
+            strip.innerHTML = html;
+        }
+        initStrip();
+
+        if (userPoints < 100) {
+            btn.disabled = true;
+            btn.innerText = "NO CREDITS";
+        }
+
+        btn.onclick = function() {
+            btn.disabled = true;
+
+            var rand = Math.random() * 100;
+            var finalPrizeObj;
+            if (rand < 40) finalPrizeObj = possiblePrizes[2];
+            else if (rand < 70) finalPrizeObj = possiblePrizes[0];
+            else if (rand < 85) finalPrizeObj = possiblePrizes[3];
+            else if (rand < 95) finalPrizeObj = possiblePrizes[5];
+            else finalPrizeObj = possiblePrizes[6];
+
+            var winIndex = 75; 
+            var allCards = strip.children;
+            allCards[winIndex].className = "card " + finalPrizeObj.type;
+            var icon = (finalPrizeObj.type === 'legendary') ? '🏆' : '⭐️';
+            allCards[winIndex].innerHTML = "<span>" + finalPrizeObj.t + "</span><span>" + icon + "</span>";
+
+            var windowHeight = 420;
+            
+            // ИСПРАВЛЕННАЯ ФОРМУЛА:
+            // (winIndex * cardHeight) — это расстояние до верха выигрышной карточки от начала ленты.
+            // Нам нужно вычесть initialOffset, чтобы компенсировать top: -3000px.
+            // Затем выравниваем центр карточки (cardHeight/2) по центру окна (windowHeight/2).
+            var baseTarget = (winIndex * cardHeight) - initialOffset - (windowHeight / 2) + (cardHeight / 2);
+            var offsetRandom = Math.floor(Math.random() * 40) - 20; // Небольшой разброс для реалистичности
+            var targetPosition = baseTarget + offsetRandom;
+
+            strip.style.transition = "transform 9s cubic-bezier(0.1, 0, 0.05, 1)";
+            strip.style.transform = "translateY(-" + targetPosition + "px)";
+
+            var lastCardIndex = 0;
+            function trackSound() {
+                var style = window.getComputedStyle(strip);
+                var matrix = new WebKitCSSMatrix(style.transform);
+                var currentY = Math.abs(matrix.m42);
+
+                // Корректируем определение текущей карточки для звука
+                var absolutePositionOnStrip = currentY + initialOffset + (windowHeight / 2);
+                var currentCardIdx = Math.floor(absolutePositionOnStrip / cardHeight);
+
+                if (currentCardIdx > lastCardIndex && currentCardIdx < cardsCount) {
+                    clickSound.currentTime = 0;
+                    clickSound.play().catch(function(){});
+                    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+                    lastCardIndex = currentCardIdx;
+                }
+
+                if (currentY < targetPosition - 2) {
+                    requestAnimationFrame(trackSound);
+                } else {
+                    setTimeout(function() {
+                        tg.sendData(JSON.stringify({ "action": "wheel_spin", "win": finalPrizeObj.v }));
+                        allCards[winIndex].style.transition = "all 0.3s";
+                        allCards[winIndex].style.background = "#fff";
+                        allCards[winIndex].style.color = "#000";
+                        allCards[winIndex].style.boxShadow = "0 0 60px #fff";
+                        
+                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+                        setTimeout(function() { 
+                            tg.close(); 
+                        }, 8000); 
+                    }, 500);
+                }
+            }
+            requestAnimationFrame(trackSound);
+        };
+    </script>
+</body>
+</html>
