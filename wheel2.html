@@ -244,14 +244,10 @@
                 if (currentY < targetPosition - 2) {
                     requestAnimationFrame(trackSound);
                 } else {
-                    // Колесо физически остановилось.
-                    // Ждем 500мс (0.5 сек), чтобы игрок зафиксировал взгляд на результате
+                    // 1. Колесо остановилось. Ждем 0.5 сек для фиксации взгляда.
                     setTimeout(function() {
                         
-                        // 1. ОТПРАВЛЯЕМ ДАННЫЕ В БОТ
-                        tg.sendData(JSON.stringify({ "action": "wheel_spin", "win": finalPrizeObj.v }));
-                        
-                        // 2. ЗАЖИГАЕМ БЕЛУЮ ПОЛОСУ (анимация 0.3 сек)
+                        // 2. СРАЗУ ЗАЖИГАЕМ БЕЛУЮ ПОЛОСУ (визуальный эффект)
                         allCards[winIndex].style.transition = "all 0.3s";
                         allCards[winIndex].style.background = "#fff";
                         allCards[winIndex].style.color = "#000";
@@ -260,11 +256,19 @@
                         // Вибрация успеха
                         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-                        // 3. ТЕПЕРЬ ЗАПУСКАЕМ ТАЙМЕР ЗАКРЫТИЯ
-                        // Окно закроется через 5 секунд ПОСЛЕ того, как загорелась полоса
+                        // 3. ЖДЕМ 5 СЕКУНД (пользователь видит результат и белую полосу)
                         setTimeout(function() { 
-                            tg.close(); 
-                        }, 5000); 
+                            
+                            // 4. ТОЛЬКО ТЕПЕРЬ ОТПРАВЛЯЕМ ДАННЫЕ В БОТ
+                            // Как только эта команда сработает, Telegram может закрыть окно
+                            tg.sendData(JSON.stringify({ "action": "wheel_spin", "win": finalPrizeObj.v }));
+                            
+                            // 5. ЗАКРЫВАЕМ ОКНО (через микро-паузу после отправки данных)
+                            setTimeout(function() {
+                                tg.close();
+                            }, 100);
+
+                        }, 5000); // Те самые 5 секунд ожидания
 
                     }, 500); 
                 }
