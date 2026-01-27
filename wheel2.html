@@ -244,7 +244,9 @@
                 if (currentY < targetPosition - 2) {
                     requestAnimationFrame(trackSound);
                 } else {
+                    // 1. Ждем всего 0.5 сек после остановки (как и было)
                     setTimeout(function() {
+                        // Появляется белая полоса и летит инфо в бот
                         tg.sendData(JSON.stringify({ "action": "wheel_spin", "win": finalPrizeObj.v }));
                         allCards[winIndex].style.transition = "all 0.3s";
                         allCards[winIndex].style.background = "#fff";
@@ -253,16 +255,17 @@
                         
                         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
+                        // 2. А вот здесь ставим время, сколько юзер будет смотреть на результат
+                        // 5000 = 5 секунд окно будет висеть С БЕЛОЙ ПОЛОСОЙ
                         setTimeout(function() { 
                             tg.close(); 
-                        }, 8000); 
-                    }, 5000);
+                        }, 5000); 
+
+                    }, 500); // ЭТОТ ПАРАМЕТР ВЕРНИ НА 500
                 }
             }
             requestAnimationFrame(trackSound);
         };
     </script>
 </body>
-
 </html>
-
