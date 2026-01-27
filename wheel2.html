@@ -244,24 +244,29 @@
                 if (currentY < targetPosition - 2) {
                     requestAnimationFrame(trackSound);
                 } else {
-                    // 1. Ждем всего 0.5 сек после остановки (как и было)
+                    // Колесо физически остановилось.
+                    // Ждем 500мс (0.5 сек), чтобы игрок зафиксировал взгляд на результате
                     setTimeout(function() {
-                        // Появляется белая полоса и летит инфо в бот
+                        
+                        // 1. ОТПРАВЛЯЕМ ДАННЫЕ В БОТ
                         tg.sendData(JSON.stringify({ "action": "wheel_spin", "win": finalPrizeObj.v }));
+                        
+                        // 2. ЗАЖИГАЕМ БЕЛУЮ ПОЛОСУ (анимация 0.3 сек)
                         allCards[winIndex].style.transition = "all 0.3s";
                         allCards[winIndex].style.background = "#fff";
                         allCards[winIndex].style.color = "#000";
                         allCards[winIndex].style.boxShadow = "0 0 60px #fff";
                         
+                        // Вибрация успеха
                         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-                        // 2. А вот здесь ставим время, сколько юзер будет смотреть на результат
-                        // 5000 = 5 секунд окно будет висеть С БЕЛОЙ ПОЛОСОЙ
+                        // 3. ТЕПЕРЬ ЗАПУСКАЕМ ТАЙМЕР ЗАКРЫТИЯ
+                        // Окно закроется через 5 секунд ПОСЛЕ того, как загорелась полоса
                         setTimeout(function() { 
                             tg.close(); 
                         }, 5000); 
 
-                    }, 500); // ЭТОТ ПАРАМЕТР ВЕРНИ НА 500
+                    }, 500); 
                 }
             }
             requestAnimationFrame(trackSound);
