@@ -244,33 +244,34 @@
                 if (currentY < targetPosition - 2) {
                     requestAnimationFrame(trackSound);
                 } else {
-                    // 1. Колесо остановилось. Уменьшаем паузу до 300мс (почти мгновенно)
+                    // 1. Колесо остановилось. Короткая пауза 0.3 сек.
                     setTimeout(function() {
                         
-                        // 2. ЗАЖИГАЕМ БЕЛУЮ ПОЛОСУ
+                        // 2. СНАЧАЛА ЗАЖИГАЕМ БЕЛУЮ ПОЛОСУ (Визуал в приоритете)
                         allCards[winIndex].style.transition = "all 0.3s";
                         allCards[winIndex].style.background = "#fff";
                         allCards[winIndex].style.color = "#000";
                         allCards[winIndex].style.boxShadow = "0 0 60px #fff";
                         
+                        // Вибрация
                         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-                        // 3. СОКРАЩАЕМ ВРЕМЯ ПОКАЗА РЕЗУЛЬТАТА
-                        // Поставим 2000 (2 секунды) вместо 5000. 
-                        // Этого хватит, чтобы увидеть выигрыш, но не ждать слишком долго.
+                        // 3. ТЕПЕРЬ ЖДЕМ 1.0 СЕКУНДУ (сократили время, как ты просил)
+                        // Этого времени хватит, чтобы полоса точно загорелась и игрок её увидел
                         setTimeout(function() { 
                             
-                            // 4. ОТПРАВЛЯЕМ ДАННЫЕ В БОТ
+                            // 4. ТОЛЬКО В САМОМ КОНЦЕ ОТПРАВЛЯЕМ ДАННЫЕ
+                            // После этой команды окно закроется почти мгновенно
                             tg.sendData(JSON.stringify({ "action": "wheel_spin", "win": finalPrizeObj.v }));
                             
-                            // 5. ЗАКРЫВАЕМ ОКНО
+                            // Резервное закрытие, если sendData не закрыл окно сам
                             setTimeout(function() {
                                 tg.close();
-                            }, 100);
+                            }, 50);
 
-                        }, 2000); // Было 5000, стало 2000
+                        }, 1000); // Мы поставили 1000 вместо 1500, сократив на 0.5 сек.
 
-                    }, 300); // Было 500, стало 300
+                    }, 300); 
                 }
             }
             requestAnimationFrame(trackSound);
