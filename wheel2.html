@@ -84,25 +84,25 @@
             top: 50%;
             left: 0;
             width: 100%;
-            height: 110px;
+            height: 0px;
             transform: translateY(-50%);
-            border-top: 3px solid #ff0055;
-            border-bottom: 3px solid #ff0055;
+            border-top: 0px solid #ff0055;
+            border-bottom: 0px solid #ff0055;
             background: rgba(255, 0, 85, 0.05);
             pointer-events: none;
             z-index: 10;
-            box-shadow: 0 0 25px #ff0055, inset 0 0 10px rgba(255, 0, 85, 0.5);
+            box-shadow: 0 0 0px #ff0055, inset 0 0 0px rgba(255, 0, 85, 0.5);
         }
 
         #selector-line::after {
             content: "◄";
             position: absolute;
-            right: 15px;
+            right: 0px;
             top: 50%;
             transform: translateY(-50%);
-            font-size: 32px;
-            color: #ff0055;
-            text-shadow: 0 0 30px #ff0055;
+            font-size: 60px;
+            color: #8A2BE2;
+            text-shadow: 0 0 30px #8A2BE2;
         }
 
         #spinBtn {
@@ -198,12 +198,40 @@
             btn.disabled = true;
 
             var rand = Math.random() * 100;
-            var finalPrizeObj;
-            if (rand < 40) finalPrizeObj = possiblePrizes[2];
-            else if (rand < 70) finalPrizeObj = possiblePrizes[0];
-            else if (rand < 85) finalPrizeObj = possiblePrizes[3];
-            else if (rand < 95) finalPrizeObj = possiblePrizes[5];
-            else finalPrizeObj = possiblePrizes[6];
+            var winIndex;
+
+            if (rand < 70) {
+                // --- УВЕЛИЧИЛИ ШАНС "БАЗЫ" ДО 70% ---
+                // Теперь в 70% случаев будет либо 0, либо 50, либо 100.
+                // Это "зона удержания", где казино забирает свое.
+                var subRand = Math.random();
+                if (subRand < 0.4) {
+                    winIndex = 2; // 0 CR (теперь выпадает чаще всего)
+                } else if (subRand < 0.7) {
+                    winIndex = 0; // 50 CR
+                } else {
+                    winIndex = 1; // 100 CR
+                }
+            } 
+            else if (rand < 85) {
+                // --- ШАНС 15% (85 - 70) ---
+                // Средние выигрыши: 200 или 250 CR. 
+                // Стало в 2 раза сложнее выбить, чем раньше!
+                winIndex = (Math.random() > 0.5) ? 3 : 4;
+            } 
+            else if (rand < 99.5) {
+                // --- ШАНС 14.5% (99.5 - 85) ---
+                // 500 CR. 
+                winIndex = 5;
+            } 
+            else {
+                // --- ШАНС 0.5% (Остаток до 100) ---
+                // JACKPOT. 1 раз на 200 игр. 
+                // Теперь это действительно редко.
+                winIndex = 6;
+            }
+
+            var finalPrizeObj = possiblePrizes[winIndex];
 
             var winIndex = 75; 
             var allCards = strip.children;
