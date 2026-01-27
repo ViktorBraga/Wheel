@@ -244,33 +244,33 @@
                 if (currentY < targetPosition - 2) {
                     requestAnimationFrame(trackSound);
                 } else {
-                    // 1. Колесо остановилось. Ждем 0.5 сек для фиксации взгляда.
+                    // 1. Колесо остановилось. Уменьшаем паузу до 300мс (почти мгновенно)
                     setTimeout(function() {
                         
-                        // 2. СРАЗУ ЗАЖИГАЕМ БЕЛУЮ ПОЛОСУ (визуальный эффект)
+                        // 2. ЗАЖИГАЕМ БЕЛУЮ ПОЛОСУ
                         allCards[winIndex].style.transition = "all 0.3s";
                         allCards[winIndex].style.background = "#fff";
                         allCards[winIndex].style.color = "#000";
                         allCards[winIndex].style.boxShadow = "0 0 60px #fff";
                         
-                        // Вибрация успеха
                         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-                        // 3. ЖДЕМ 5 СЕКУНД (пользователь видит результат и белую полосу)
+                        // 3. СОКРАЩАЕМ ВРЕМЯ ПОКАЗА РЕЗУЛЬТАТА
+                        // Поставим 2000 (2 секунды) вместо 5000. 
+                        // Этого хватит, чтобы увидеть выигрыш, но не ждать слишком долго.
                         setTimeout(function() { 
                             
-                            // 4. ТОЛЬКО ТЕПЕРЬ ОТПРАВЛЯЕМ ДАННЫЕ В БОТ
-                            // Как только эта команда сработает, Telegram может закрыть окно
+                            // 4. ОТПРАВЛЯЕМ ДАННЫЕ В БОТ
                             tg.sendData(JSON.stringify({ "action": "wheel_spin", "win": finalPrizeObj.v }));
                             
-                            // 5. ЗАКРЫВАЕМ ОКНО (через микро-паузу после отправки данных)
+                            // 5. ЗАКРЫВАЕМ ОКНО
                             setTimeout(function() {
                                 tg.close();
                             }, 100);
 
-                        }, 5000); // Те самые 5 секунд ожидания
+                        }, 2000); // Было 5000, стало 2000
 
-                    }, 500); 
+                    }, 300); // Было 500, стало 300
                 }
             }
             requestAnimationFrame(trackSound);
