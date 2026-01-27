@@ -139,7 +139,7 @@
 </head>
 <body>
 
-    <div class="balance-box" id="bal-text">CREDITS: 0</div>
+    <div class="balance-box" id="bal-text">Points: 0</div>
 
     <div id="roulette-window">
         <div id="selector-line"></div>
@@ -155,17 +155,17 @@
         const urlParams = new URLSearchParams(window.location.search);
         let userPoints = parseInt(urlParams.get('points'));
         if (isNaN(userPoints)) userPoints = 0;
-        document.getElementById('bal-text').innerText = "CREDITS: " + userPoints;
+        document.getElementById('bal-text').innerText = "Points: " + userPoints;
 
         const possiblePrizes = [
-            { t: "50 CR", type: "common", v: 50 },
-            { t: "100 CR", type: "common", v: 100 },
-            { t: "0 CR", type: "common", v: 0 },
-            { t: "200 CR", type: "rare", v: 200 },
-            { t: "250 CR", type: "rare", v: 250 },
-            { t: "500 CR", type: "epic", v: 500 },
+            { t: "50 Points", type: "common", v: 50 },
+            { t: "100 Points", type: "common", v: 100 },
+            { t: "0 Points", type: "common", v: 0 },
+            { t: "200 Points", type: "rare", v: 200 },
+            { t: "250 Points", type: "rare", v: 250 },
+            { t: "500 Points", type: "epic", v: 500 },
             { t: "JACKPOT", type: "legendary", v: "jackpot" },
-            { t: "0 CR", type: "common", v: 0 }
+            { t: "0 Points", type: "common", v: 0 }
         ];
 
         const strip = document.getElementById('strip');
@@ -191,7 +191,7 @@
 
         if (userPoints < 100) {
             btn.disabled = true;
-            btn.innerText = "NO CREDITS";
+            btn.innerText = "NO POINTS";
         }
 
         btn.onclick = function() {
@@ -255,7 +255,7 @@
 
                         setTimeout(function() { 
                             tg.close(); 
-                        }, 8000); 
+                        }, 9000); 
                     }, 500);
                 }
             }
