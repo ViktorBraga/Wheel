@@ -30,9 +30,22 @@
             box-shadow: 0 0 25px rgba(0, 247, 255, 0.4), inset 0 0 15px rgba(0, 247, 255, 0.2);
         }
 
+        /* Бирюзовые полоски по бокам */
+        #roulette-window::before, #roulette-window::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: #00f7ff;
+            box-shadow: 0 0 15px #00f7ff;
+            z-index: 5;
+        }
+        #roulette-window::before { left: 0; }
+        #roulette-window::after { right: 0; }
+
         #strip {
             position: absolute;
-            /* ВАЖНО: top должен совпадать с initialOffset в JS */
             top: -3000px; 
             left: 0;
             width: 100%;
@@ -42,7 +55,7 @@
         .card {
             height: 100px;
             width: 290px;
-            margin: 12px auto; /* 100 + 12 = 112px высота блока */
+            margin: 12px auto; 
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -59,50 +72,26 @@
             transition: all 0.3s ease;
             position: relative;
         }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 60%);
-            pointer-events: none;
-        }
 
-        .common { border-left-color: #2ecc71; box-shadow: -8px 0 20px rgba(46, 204, 113, 0.4); }
-        .rare { border-left-color: #3498db; box-shadow: -8px 0 25px rgba(52, 152, 219, 0.5); }
-        .epic { border-left-color: #9b59b6; box-shadow: -8px 0 30px rgba(155, 89, 182, 0.6); }
+        .common { border-left-color: #2ecc71; }
+        .rare { border-left-color: #3498db; }
+        .epic { border-left-color: #9b59b6; }
         .legendary {
             border-left-color: #f1c40f;
             background: linear-gradient(90deg, rgba(241, 196, 15, 0.2) 0%, rgba(30, 30, 40, 0.8) 100%);
-            box-shadow: -10px 0 40px rgba(241, 196, 15, 0.8);
             color: #ffeaa7;
-            text-shadow: 0 0 15px #f1c40f;
         }
 
         #selector-line {
             position: absolute;
             top: 50%;
-            left: 0;
-            width: 100%;
-            height: 0px;
-            transform: translateY(-50%);
-            border-top: 0px solid #ff0055;
-            border-bottom: 0px solid #ff0055;
-            background: rgba(255, 0, 85, 0.05);
-            pointer-events: none;
-            z-index: 10;
-            box-shadow: 0 0 0px #ff0055, inset 0 0 0px rgba(255, 0, 85, 0.5);
-        }
-
-        #selector-line::after {
-            content: "◄";
-            position: absolute;
-            right: 0px;
-            top: 50%;
+            right: 0;
             transform: translateY(-50%);
             font-size: 60px;
             color: #8A2BE2;
             text-shadow: 0 0 30px #8A2BE2;
+            z-index: 10;
+            pointer-events: none;
         }
 
         #spinBtn {
@@ -120,21 +109,12 @@
             cursor: pointer;
             box-shadow: 0 0 30px rgba(255, 0, 85, 0.6);
             transition: all 0.2s;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
 
-        #spinBtn:active { transform: skewX(-12deg) translateY(3px); box-shadow: 0 0 15px rgba(255, 0, 85, 0.8); }
-        #spinBtn:disabled { background: #444; border-color: #666; box-shadow: none; color: #888; }
+        #spinBtn:active { transform: skewX(-12deg) translateY(3px); }
+        #spinBtn:disabled { background: #444; border-color: #666; color: #888; box-shadow: none; }
 
-        .balance-box {
-            margin-bottom: 25px;
-            font-size: 20px;
-            color: #00f7ff;
-            font-weight: bold;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(0, 247, 255, 0.5);
-            letter-spacing: 1px;
-        }
+        .balance-box { margin-bottom: 25px; font-size: 20px; color: #00f7ff; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -142,19 +122,42 @@
     <div class="balance-box" id="bal-text">Points: 0</div>
 
     <div id="roulette-window">
-        <div id="selector-line"></div>
+        <div id="selector-line">◄</div>
         <div id="strip"></div>
     </div>
 
     <button id="spinBtn">КРУТИТЬ</button>
 
-    <script>
+<script>
         const tg = window.Telegram.WebApp;
         tg.expand();
 
+        // --- НОВЫЙ ЗВУКОВОЙ ДВИЖОК (Web Audio API) ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+        let tickBuffer = null;
+
+        // Загрузка звука в память один раз
+        async function loadTickSound() {
+            try {
+                const response = await fetch('click_wheel.mp3'); 
+                const arrayBuffer = await response.arrayBuffer();
+                tickBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            } catch (e) { console.error("Звук не загружен:", e); }
+        }
+        loadTickSound();
+
+        function playTick() {
+            if (!tickBuffer) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const source = audioCtx.createBufferSource();
+            source.buffer = tickBuffer;
+            source.connect(audioCtx.destination);
+            source.start(0);
+        }
+
         const urlParams = new URLSearchParams(window.location.search);
-        let userPoints = parseInt(urlParams.get('points'));
-        if (isNaN(userPoints)) userPoints = 0;
+        let userPoints = parseInt(urlParams.get('points')) || 200;
         document.getElementById('bal-text').innerText = "Points: " + userPoints;
 
         const possiblePrizes = [
@@ -164,26 +167,20 @@
             { t: "200 Points", type: "rare", v: 200 },
             { t: "250 Points", type: "rare", v: 250 },
             { t: "500 Points", type: "epic", v: 500 },
-            { t: "JACKPOT", type: "legendary", v: "jackpot" },
-            { t: "0 Points", type: "common", v: 0 }
+            { t: "JACKPOT", type: "legendary", v: "jackpot" }
         ];
 
         const strip = document.getElementById('strip');
         const btn = document.getElementById('spinBtn');
-        const clickSound = new Audio('click_wheel.mp3'); 
-
         const cardHeight = 112; 
         const cardsCount = 200; 
-        const initialOffset = 3000; // Это смещение из CSS (top: -3000px)
+        const initialOffset = 3000;
 
         function initStrip() {
             let html = '';
             for (let i = 0; i < cardsCount; i++) {
                 let randomPrize = possiblePrizes[Math.floor(Math.random() * possiblePrizes.length)];
-                html += '<div class="card ' + randomPrize.type + '">' +
-                        '<span>' + randomPrize.t + '</span>' +
-                        '<span>⭐️</span>' +
-                        '</div>';
+                html += '<div class="card ' + randomPrize.type + '"><span>' + randomPrize.t + '</span><span>⭐️</span></div>';
             }
             strip.innerHTML = html;
         }
@@ -195,59 +192,36 @@
         }
 
         btn.onclick = function() {
+            // Разблокировка аудио-контекста кликом пользователя (обязательно для телефонов)
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             btn.disabled = true;
 
             var rand = Math.random() * 100;
             var winIndex;
 
+            // Настройка шансов
             if (rand < 70) {
-                // --- УВЕЛИЧИЛИ ШАНС "БАЗЫ" ДО 70% ---
-                // Теперь в 70% случаев будет либо 0, либо 50, либо 100.
-                // Это "зона удержания", где казино забирает свое.
                 var subRand = Math.random();
-                if (subRand < 0.4) {
-                    winIndex = 2; // 0 CR (теперь выпадает чаще всего)
-                } else if (subRand < 0.7) {
-                    winIndex = 0; // 50 CR
-                } else {
-                    winIndex = 1; // 100 CR
-                }
-            } 
-            else if (rand < 85) {
-                // --- ШАНС 15% (85 - 70) ---
-                // Средние выигрыши: 200 или 250 CR. 
-                // Стало в 2 раза сложнее выбить, чем раньше!
-                winIndex = (Math.random() > 0.5) ? 3 : 4;
-            } 
-            else if (rand < 99.5) {
-                // --- ШАНС 14.5% (99.5 - 85) ---
-                // 500 CR. 
-                winIndex = 5;
-            } 
-            else {
-                // --- ШАНС 0.5% (Остаток до 100) ---
-                // JACKPOT. 1 раз на 200 игр. 
-                // Теперь это действительно редко.
-                winIndex = 6;
+                if (subRand < 0.4) winIndex = 2; // 0
+                else if (subRand < 0.7) winIndex = 0; // 50
+                else winIndex = 1; // 100
+            } else if (rand < 85) {
+                winIndex = (Math.random() > 0.5) ? 3 : 4; // 200-250
+            } else if (rand < 99.5) {
+                winIndex = 5; // 500
+            } else {
+                winIndex = 6; // JACKPOT
             }
 
             var finalPrizeObj = possiblePrizes[winIndex];
-
-            var winIndex = 75; 
+            var targetWinIdx = 75; 
             var allCards = strip.children;
-            allCards[winIndex].className = "card " + finalPrizeObj.type;
+            allCards[targetWinIdx].className = "card " + finalPrizeObj.type;
             var icon = (finalPrizeObj.type === 'legendary') ? '🏆' : '⭐️';
-            allCards[winIndex].innerHTML = "<span>" + finalPrizeObj.t + "</span><span>" + icon + "</span>";
+            allCards[targetWinIdx].innerHTML = "<span>" + finalPrizeObj.t + "</span><span>" + icon + "</span>";
 
             var windowHeight = 420;
-            
-            // ИСПРАВЛЕННАЯ ФОРМУЛА:
-            // (winIndex * cardHeight) — это расстояние до верха выигрышной карточки от начала ленты.
-            // Нам нужно вычесть initialOffset, чтобы компенсировать top: -3000px.
-            // Затем выравниваем центр карточки (cardHeight/2) по центру окна (windowHeight/2).
-            var baseTarget = (winIndex * cardHeight) - initialOffset - (windowHeight / 2) + (cardHeight / 2);
-            var offsetRandom = Math.floor(Math.random() * 40) - 20; // Небольшой разброс для реалистичности
-            var targetPosition = baseTarget + offsetRandom;
+            var targetPosition = (targetWinIdx * cardHeight) - initialOffset - (windowHeight / 2) + (cardHeight / 2);
 
             strip.style.transition = "transform 9s cubic-bezier(0.1, 0, 0.05, 1)";
             strip.style.transform = "translateY(-" + targetPosition + "px)";
@@ -258,13 +232,11 @@
                 var matrix = new WebKitCSSMatrix(style.transform);
                 var currentY = Math.abs(matrix.m42);
 
-                // Корректируем определение текущей карточки для звука
                 var absolutePositionOnStrip = currentY + initialOffset + (windowHeight / 2);
                 var currentCardIdx = Math.floor(absolutePositionOnStrip / cardHeight);
 
                 if (currentCardIdx > lastCardIndex && currentCardIdx < cardsCount) {
-                    clickSound.currentTime = 0;
-                    clickSound.play().catch(function(){});
+                    playTick(); // Мгновенный звук из буфера
                     if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
                     lastCardIndex = currentCardIdx;
                 }
@@ -272,33 +244,17 @@
                 if (currentY < targetPosition - 2) {
                     requestAnimationFrame(trackSound);
                 } else {
-                    // 1. Колесо остановилось. Короткая пауза 0.3 сек.
                     setTimeout(function() {
-                        
-                        // 2. СНАЧАЛА ЗАЖИГАЕМ БЕЛУЮ ПОЛОСУ (Визуал в приоритете)
-                        allCards[winIndex].style.transition = "all 0.3s";
-                        allCards[winIndex].style.background = "#fff";
-                        allCards[winIndex].style.color = "#000";
-                        allCards[winIndex].style.boxShadow = "0 0 60px #fff";
-                        
-                        // Вибрация
+                        allCards[targetWinIdx].style.transition = "all 0.3s";
+                        allCards[targetWinIdx].style.background = "#fff";
+                        allCards[targetWinIdx].style.color = "#000";
+                        allCards[targetWinIdx].style.boxShadow = "0 0 60px #fff";
                         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
 
-                        // 3. ТЕПЕРЬ ЖДЕМ 1.0 СЕКУНДУ (сократили время, как ты просил)
-                        // Этого времени хватит, чтобы полоса точно загорелась и игрок её увидел
                         setTimeout(function() { 
-                            
-                            // 4. ТОЛЬКО В САМОМ КОНЦЕ ОТПРАВЛЯЕМ ДАННЫЕ
-                            // После этой команды окно закроется почти мгновенно
                             tg.sendData(JSON.stringify({ "action": "wheel_spin", "win": finalPrizeObj.v }));
-                            
-                            // Резервное закрытие, если sendData не закрыл окно сам
-                            setTimeout(function() {
-                                tg.close();
-                            }, 50);
-
-                        }, 1000); // Мы поставили 1000 вместо 1500, сократив на 0.5 сек.
-
+                            setTimeout(() => tg.close(), 100);
+                        }, 1000);
                     }, 300); 
                 }
             }
