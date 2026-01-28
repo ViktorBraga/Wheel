@@ -200,18 +200,29 @@
             var winIndex;
 
             // Настройка шансов
-            if (rand < 90) {
-                var subRand = Math.random();
-                if (subRand < 0.4) winIndex = 2; // 0
-                else if (subRand < 0.7) winIndex = 0; // 50
-                else winIndex = 1; // 100
-            } else if (rand < 85) {
-                winIndex = (Math.random() > 0.5) ? 3 : 4; // 200-250
-            } else if (rand < 99.5) {
-                winIndex = 5; // 500
-            } else {
-                winIndex = 6; // JACKPOT
-            }
+                    // НОВАЯ ЖЕСТКАЯ ЛОГИКА ШАНСОВ
+        if (rand < 75) { 
+            // 75% шанс на "Базу" (0, 50, 100)
+            // Игрок чаще всего будет либо сливать, либо крутить в ноль
+            var subRand = Math.random();
+            if (subRand < 0.5) winIndex = 2;      // 0 CR (половина из базы)
+            else if (subRand < 0.8) winIndex = 0; // 50 CR
+            else winIndex = 1;                    // 100 CR
+        } 
+        else if (rand < 98.5) { 
+            // 23.5% шанс на средние призы (200-250)
+            winIndex = (Math.random() > 0.5) ? 3 : 4;
+        } 
+        else if (rand < 99.5) { 
+            // ВСЕГО 1% ШАНС на 500 CR (был 14.5%)
+            // Теперь 500 выпадает раз в 100 игр
+            winIndex = 5;
+        } 
+        else {
+            // 0.5% ШАНС на JACKPOT
+            winIndex = 6;
+        }
+
 
             var finalPrizeObj = possiblePrizes[winIndex];
             var targetWinIdx = 75; 
@@ -264,4 +275,5 @@
 </body>
 
 </html>
+
 
