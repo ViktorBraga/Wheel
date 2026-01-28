@@ -157,7 +157,7 @@
         }
 
         const urlParams = new URLSearchParams(window.location.search);
-        let userPoints = parseInt(urlParams.get('points')) || 200;
+        let userPoints = parseInt(urlParams.get('points')) || 0;
         document.getElementById('bal-text').innerText = "Points: " + userPoints;
 
         const possiblePrizes = [
@@ -262,4 +262,5 @@
         };
     </script>
 </body>
+
 </html>
